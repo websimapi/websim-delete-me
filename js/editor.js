@@ -22,6 +22,14 @@ export function getEditorInstance() {
 export function initialize() {
     if (initialized) return;
     
+    console.log("Initializing Monaco Editor...");
+    
+    const editorContainer = document.getElementById('monaco-editor');
+    if (!editorContainer) {
+        console.error("Monaco editor container not found!");
+        return;
+    }
+    
     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
     
     require(['vs/editor/editor.main'], function() {
@@ -50,6 +58,7 @@ export function initialize() {
         document.getElementById('reset-code').addEventListener('click', resetCode);
         
         initialized = true;
+        console.log("Monaco Editor initialized successfully");
     });
 }
 
