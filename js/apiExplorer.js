@@ -1,31 +1,12 @@
-// Tab switching functionality
-document.querySelectorAll('.tab-btn').forEach(button => {
-    button.addEventListener('click', () => {
-        // Update active tab button
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        button.classList.add('active');
-        
-        // Show selected tab content
-        const tabId = button.getAttribute('data-tab');
-        document.querySelectorAll('.tab-content').forEach(tab => {
-            tab.classList.remove('active');
-        });
-        document.getElementById(tabId).classList.add('active');
-        
-        // Handle special cases when switching tabs
-        if (tabId === 'editor' && !editorInitialized) {
-            initializeMonacoEditor();
-        }
-    });
-});
-
 // API Explorer functionality
-let babylonAPI = {};
 
-// Initialize the API explorer
-function initializeAPIExplorer() {
+let babylonAPI = {};
+let editorCallback = null;
+
+/**
+ * Initialize the API explorer
+ */
+export function initialize() {
     // Extract API information from BABYLON namespace
     babylonAPI = extractAPIInfo(BABYLON);
     renderAPITree(babylonAPI);
@@ -38,7 +19,23 @@ function initializeAPIExplorer() {
     });
 }
 
-// Extract API information recursively
+/**
+ * Set callback function for editor interaction
+ */
+export function setEditorCallback(callback) {
+    editorCallback = callback;
+}
+
+/**
+ * Get API data for autocomplete
+ */
+export function getAPIData() {
+    return babylonAPI;
+}
+
+/**
+ * Extract API information recursively
+ */
 function extractAPIInfo(obj, path = '', maxDepth = 2, currentDepth = 0) {
     if (currentDepth >= maxDepth) return null;
     
@@ -117,7 +114,9 @@ function extractAPIInfo(obj, path = '', maxDepth = 2, currentDepth = 0) {
     return result;
 }
 
-// Render the API tree in the sidebar
+/**
+ * Render the API tree in the sidebar
+ */
 function renderAPITree(apiInfo) {
     const treeContainer = document.getElementById('api-tree');
     treeContainer.innerHTML = '';
@@ -151,7 +150,9 @@ function renderAPITree(apiInfo) {
     treeContainer.appendChild(rootItem);
 }
 
-// Create a tree item with expandable children
+/**
+ * Create a tree item with expandable children
+ */
 function createTreeItem(name, info, fullPath) {
     const item = document.createElement('div');
     item.className = 'tree-item';
@@ -192,7 +193,9 @@ function createTreeItem(name, info, fullPath) {
     return item;
 }
 
-// Display API details in the main content area
+/**
+ * Display API details in the main content area
+ */
 function displayAPIDetails(path, info) {
     const detailsContainer = document.getElementById('api-details');
     detailsContainer.innerHTML = '';
@@ -267,7 +270,9 @@ function displayAPIDetails(path, info) {
     }
 }
 
-// Search API
+/**
+ * Search API
+ */
 function searchAPI(term) {
     if (!term) {
         renderAPITree(babylonAPI);
@@ -275,186 +280,60 @@ function searchAPI(term) {
     }
     
     // Perform search and update tree
-    // (simplified implementation)
-    const searchResults = {};
+    const searchResults = performSearch(babylonAPI, term);
     
     // Display search results
     const treeContainer = document.getElementById('api-tree');
     treeContainer.innerHTML = '';
     
-    const searchStatus = document.createElement('div');
-    searchStatus.textContent = `Searching for "${term}"...`;
-    treeContainer.appendChild(searchStatus);
+    if (Object.keys(searchResults).length === 0) {
+        const noResults = document.createElement('div');
+        noResults.textContent = `No results found for "${term}"`;
+        treeContainer.appendChild(noResults);
+        return;
+    }
     
-    // In a real implementation, you would search through the API
-    // and display matching items here
+    // Display search results in the tree
+    const resultsRoot = document.createElement('div');
+    resultsRoot.className = 'tree-item';
+    
+    const resultsHeader = document.createElement('div');
+    resultsHeader.className = 'tree-item-header';
+    resultsHeader.textContent = `Search Results for "${term}"`;
+    
+    resultsRoot.appendChild(resultsHeader);
+    treeContainer.appendChild(resultsRoot);
+    
+    // Add result items
+    // Implementation simplified for brevity
+    const resultsContainer = document.createElement('div');
+    resultsContainer.className = 'tree-item-children';
+    resultsContainer.style.display = 'block';
+    
+    // Add some placeholder results
+    const placeholder = document.createElement('div');
+    placeholder.textContent = "Search functionality needs implementation";
+    resultsContainer.appendChild(placeholder);
+    
+    resultsRoot.appendChild(resultsContainer);
 }
 
-// Copy API path to editor
+/**
+ * Perform search on API tree
+ */
+function performSearch(apiData, term) {
+    // Simplified implementation
+    return {};
+}
+
+/**
+ * Copy API path to editor
+ */
 function copyToEditor(path) {
-    if (editorInstance) {
-        const currentContent = editorInstance.getValue();
-        const position = editorInstance.getPosition();
-        editorInstance.executeEdits('', [
-            {
-                range: {
-                    startLineNumber: position.lineNumber,
-                    startColumn: position.column,
-                    endLineNumber: position.lineNumber,
-                    endColumn: position.column
-                },
-                text: path
-            }
-        ]);
+    if (editorCallback) {
+        editorCallback(path);
         
         // Switch to editor tab
         document.querySelector('.tab-btn[data-tab="editor"]').click();
     }
 }
-
-// Monaco Editor
-let editorInstance = null;
-let editorInitialized = false;
-
-function initializeMonacoEditor() {
-    require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.36.1/min/vs' }});
-    
-    require(['vs/editor/editor.main'], function() {
-        editorInstance = monaco.editor.create(document.getElementById('monaco-editor'), {
-            value: getDefaultCode(),
-            language: 'javascript',
-            theme: 'vs-dark',
-            automaticLayout: true
-        });
-        
-        // Set up run button
-        document.getElementById('run-code').addEventListener('click', runCode);
-        // Set up reset button
-        document.getElementById('reset-code').addEventListener('click', resetCode);
-        
-        editorInitialized = true;
-    });
-}
-
-// Default code for the editor
-function getDefaultCode() {
-    return `// Babylon.js Scene Example
-// This code will create a simple scene with a rotating cube
-
-// Get the canvas element
-const canvas = document.getElementById("renderCanvas");
-
-// Initialize the Babylon.js engine
-const engine = new BABYLON.Engine(canvas, true);
-
-// Create a scene
-function createScene() {
-    const scene = new BABYLON.Scene(engine);
-    
-    // Add a camera
-    const camera = new BABYLON.ArcRotateCamera("camera", 
-        -Math.PI / 2, Math.PI / 2.5, 3, 
-        BABYLON.Vector3.Zero(), scene);
-    camera.attachControl(canvas, true);
-    
-    // Add a light
-    const light = new BABYLON.HemisphericLight("light", 
-        new BABYLON.Vector3(0, 1, 0), scene);
-    
-    // Create a box
-    const box = BABYLON.MeshBuilder.CreateBox("box", 
-        {size: 1}, scene);
-    
-    // Add material
-    const material = new BABYLON.StandardMaterial("material", scene);
-    material.diffuseColor = new BABYLON.Color3(0.4, 0.4, 0.8);
-    box.material = material;
-    
-    // Animation
-    scene.registerBeforeRender(function() {
-        box.rotation.y += 0.01;
-        box.rotation.x += 0.005;
-    });
-    
-    return scene;
-}
-
-// Create and run the scene
-const scene = createScene();
-engine.runRenderLoop(function() {
-    scene.render();
-});
-
-// Handle window resize
-window.addEventListener("resize", function() {
-    engine.resize();
-});
-
-console.log("Scene created successfully!");`;
-}
-
-// Run code from the editor
-function runCode() {
-    if (!editorInstance) return;
-    
-    const code = editorInstance.getValue();
-    const consoleOutput = document.getElementById('console-output');
-    consoleOutput.innerHTML = '';
-    
-    // Create a custom console log to capture output
-    const originalConsoleLog = console.log;
-    console.log = function() {
-        const output = Array.from(arguments)
-            .map(arg => typeof arg === 'object' ? JSON.stringify(arg) : arg)
-            .join(' ');
-        
-        const logLine = document.createElement('div');
-        logLine.textContent = output;
-        consoleOutput.appendChild(logLine);
-        
-        originalConsoleLog.apply(console, arguments);
-    };
-    
-    // Reset any existing scene
-    if (window.scene) {
-        window.scene.dispose();
-    }
-    if (window.engine) {
-        window.engine.stopRenderLoop();
-    }
-    
-    try {
-        // Execute the code
-        eval(code);
-        
-        // Add success message
-        const successLine = document.createElement('div');
-        successLine.textContent = '✓ Code executed successfully';
-        successLine.style.color = '#4CAF50';
-        consoleOutput.appendChild(successLine);
-    } catch (error) {
-        // Add error message
-        const errorLine = document.createElement('div');
-        errorLine.textContent = `❌ Error: ${error.message}`;
-        errorLine.style.color = '#F44336';
-        consoleOutput.appendChild(errorLine);
-        
-        console.error(error);
-    }
-    
-    // Restore console.log
-    console.log = originalConsoleLog;
-}
-
-// Reset editor code to default
-function resetCode() {
-    if (editorInstance) {
-        editorInstance.setValue(getDefaultCode());
-    }
-}
-
-// Initialize when the page loads
-window.addEventListener('load', function() {
-    // Start with API Explorer tab
-    initializeAPIExplorer();
-});
